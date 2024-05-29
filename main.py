@@ -93,7 +93,7 @@ class MyButton(ft.Container):
                 minesweeper_grid.controls=update_land()
                 minesweeper_grid.update()
 
-class togg(ft.Container):
+class togg(ft.Container): #Inspired by ToggleSwitch from fletmint
     def __init__(self):
         super().__init__(
             width=133,
