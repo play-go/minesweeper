@@ -1,5 +1,5 @@
 import flet as ft
-import random,time
+import random,time,DialogWindow
 class MyButton(ft.Container):
     def __init__(self, mine:bool, num:str|int, pox:tuple, vis:bool, flagged:bool):
         super().__init__()
@@ -35,18 +35,10 @@ class MyButton(ft.Container):
         self.width=10
         self.height=10
         if vis:
-            if self.bomb:
-                self.res.current.on_click=None
-                self.res.current.on_long_press=None
-                self.res.current.content=ft.Image(
-                                            src=f"/bomb.svg",
-                                            scale=0.5
-                                        )
-            else:
-                self.res.current.on_click=None
-                self.res.current.on_long_press=None
-                self.res.current.content=ft.Text('' if self.num==0 else self.num, text_align=ft.TextAlign.CENTER, color=self.num_to_col(self.num), scale=1.3)
-                open_land[self.pos[0]][self.pos[1]]=1
+            self.res.current.on_click=None
+            self.res.current.on_long_press=None
+            self.res.current.content=ft.Text('' if self.num==0 else self.num, text_align=ft.TextAlign.CENTER, color=self.num_to_col(self.num), scale=1.3)
+            open_land[self.pos[0]][self.pos[1]]=1
         
     def num_to_col(self,num):
         match num:
@@ -69,29 +61,30 @@ class MyButton(ft.Container):
             
     def check(self,e):
         global loose
-        if toggel.value:
-            if self.flagged:
-                open_land[self.pos[0]][self.pos[1]]=0
-            else: open_land[self.pos[0]][self.pos[1]]=2
-            minesweeper_grid.controls=update_land()
-            minesweeper_grid.update()
-        elif not self.flagged:
-            if self.bomb:
-                self.res.current.on_click=None
-                self.res.current.on_long_press=None
-                self.res.current.content=ft.Image(
-                                            src=f"/bomb.svg",
-                                            scale=0.5,
-                                            color=ft.colors.RED)
-                self.update()
-                loose()
-            else:
-                self.res.current.on_click=None
-                self.res.current.on_long_press=None
-                self.res.current.content=ft.Container(ft.Text('' if self.num==0 else self.num, style=ft.TextStyle()),alignment=ft.alignment.center)
-                open_land[self.pos[0]][self.pos[1]]=1
+        if (time.time()-time_s):
+            if toggel.value:
+                if self.flagged:
+                    open_land[self.pos[0]][self.pos[1]]=0
+                else: open_land[self.pos[0]][self.pos[1]]=2
                 minesweeper_grid.controls=update_land()
                 minesweeper_grid.update()
+            elif not self.flagged:
+                if self.bomb:
+                    self.res.current.on_click=None
+                    self.res.current.on_long_press=None
+                    self.res.current.content=ft.Image(
+                                                src=f"/bomb.svg",
+                                                scale=0.5,
+                                                color=ft.colors.RED)
+                    self.update()
+                    loose()
+                else:
+                    self.res.current.on_click=None
+                    self.res.current.on_long_press=None
+                    self.res.current.content=ft.Container(ft.Text('' if self.num==0 else self.num, style=ft.TextStyle()),alignment=ft.alignment.center)
+                    open_land[self.pos[0]][self.pos[1]]=1
+                    minesweeper_grid.controls=update_land()
+                    minesweeper_grid.update()
 
 class togg(ft.Container): #Inspired by ToggleSwitch from fletmint
     def __init__(self):
@@ -166,7 +159,6 @@ def add_bomb_around(land,x,y):
         add_list(land, x, y-1, (x,y))
     
 def sm(page,row):
-    page.dialog.open=False
     game_init(page,row)
 
 
@@ -178,32 +170,25 @@ def main(page: ft.Page):
         sm(page,rowss)
     
     def loose():
-        page.dialog=ft.AlertDialog(modal=True,title=ft.Text("You lose!"),content=ft.Column([ft.TextButton("Restart",on_long_press=restt,on_click=restt),ft.TextButton("Main menu",on_click=lambda e: main(page))],height=60))
-        page.dialog.open=True
+        page.dialog=DialogWindow.DialogWindow(title="You lose!",title_alignment=ft.alignment.center,actions=[ft.TextButton("Restart",on_click=restt),ft.TextButton("Main menu",on_click=lambda e: main(page))])
         page.update()
+        page.dialog.show()
 
     def game_init(page: ft.Page,rows):
         global rowss,land,open_land
-        time_s=time.time()
         page.clean()
         rowss=rows
         match rows:
             case 5:
                 page.title="Minesweeper 5x5 (5 bomb)"
-                page.window_min_width=460
                 page.window_width=460
-                page.window_min_height=544
                 page.window_height=544
             case 10:
                 page.title="Minesweeper 10x10 (10 bomb)"
-                page.window_min_width=512
                 page.window_width=512
-                page.window_min_height=600
                 page.window_height=600
             case 15:
                 page.title="Minesweeper 15x15 (15 bomb)"
-                page.window_min_width=610
-                page.window_min_height=705
                 page.window_width=610
                 page.window_height=705
         page.update()
@@ -264,9 +249,9 @@ def main(page: ft.Page):
             y=0
             open_land=update_open_land()
             if check_win():
-                page.dialog=ft.AlertDialog(modal=True,title=ft.Text("You win!"),content=ft.Column([ft.TextButton("Restart",on_long_press=restt,on_click=restt),ft.TextButton("Main menu",on_click=lambda e: main(page),on_long_press=lambda e: main(page)),ft.Card(ft.Container(ft.Text(f"Time spent: {round(time.time()-time_s,2)}s\nMode: {rowss}x{rowss}"),padding=10))],height=125))
-                page.dialog.open=True
+                page.dialog=DialogWindow.DialogWindow(title="You win!",title_alignment=ft.alignment.center,content=ft.Container(ft.Text(f"Time spent: {round(time.time()-time_s,2)}s\nMode: {rowss}x{rowss}"),padding=10),actions=[ft.TextButton("Restart",on_click=restt),ft.TextButton("Main menu",on_click=lambda e: main(page))])
                 page.update()
+                page.dialog.show()
             else:
                 for i in land:
                     x=0
@@ -290,24 +275,22 @@ def main(page: ft.Page):
         toggel=togg()
         page.add(minesweeper_grid,toggel)
         page.update()
+        global time_s
+        time_s=time.time()
     
     page.window_center()
-    page.window_width=380
-    page.window_height=240
-    page.window_max_height=1024
-    page.window_max_width=1024
+    page.window_width=500
+    page.window_height=500
     page.vertical_alignment=ft.MainAxisAlignment.CENTER
     page.horizontal_alignment=ft.CrossAxisAlignment.CENTER
     page.title="Minesweeper"
     page.window_maximizable=False
     page.window_full_screen=False
-    def rex(e):
-        print(f"{page.window_width}x{page.window_height}")
-    page.on_resize=rex
-    page.window_resizable=True
+    page.window_resizable=False
     page.padding=5
-    page.dialog=ft.AlertDialog(modal=True,title=ft.Text("Minesweeper"),content=ft.Row([ft.TextButton("5x5",on_click=lambda e:sm(page,5)),ft.TextButton("10x10",on_click=lambda e:sm(page,10)),ft.TextButton("15x15",on_click=lambda e:sm(page,15))]))
-    page.dialog.open=True
+    page.dialog=DialogWindow.DialogWindow(title="Minesweeper",title_alignment=ft.alignment.center,actions=[ft.TextButton("5x5",on_click=lambda e:sm(page,5)),ft.TextButton("10x10",on_click=lambda e:sm(page,10)),ft.TextButton("15x15",on_click=lambda e:sm(page,15))])
+    page.update()
+    page.dialog.show()
     page.update()
 
 ft.app(main,name="Minesweeper",assets_dir="assets")
